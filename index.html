@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>49ers Gameday</title>
+  <!-- Vendored locally so the site works with zero external dependencies -->
+  <script src="assets/confetti.min.js"></script>
+  <style>
+    :root {
+      --gold: #B3995D;
+      --red: #AA0000;
+      --red2: #C9302C;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; width: 100%; }
+    body {
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #000;
+    }
+
+    /* ---- Board ---- */
+    .sb-board {
+      position: relative;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      background-image: url("assets/background.png");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+
+    .sb-btn {
+      background: transparent;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: transform 0.1s;
+    }
+    .sb-btn:active { transform: scale(0.92); }
+
+    .sb-img {
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+      pointer-events: none;
+      object-fit: contain;
+    }
+
+    /* Small images: GAMEDAY SONG + SELFIE */
+    .sb-img-sm {
+      width: 14.49vw; height: 14.49vw;
+      max-width: 186px; max-height: 186px;
+      min-width: 124px; min-height: 124px;
+    }
+    /* Large images: HYPESONG / FOGHORN / DEFENSE / FOX */
+    .sb-img-lg {
+      width: 16.1vw; height: 16.1vw;
+      max-width: 207px; max-height: 207px;
+      min-width: 138px; min-height: 138px;
+    }
+
+    /* Outlined red labels (GAMEDAY SONG / GAMEDAY SELFIE) */
+    .sb-label-outline {
+      font-size: 1.6875rem;
+      font-weight: 700;
+      color: var(--red);
+      -webkit-text-stroke: 1px #ffffff;
+      text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    /* White labels under the big buttons */
+    .sb-label {
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ---- Positions ---- */
+    .pos-gameday { position: absolute; top: 3%; left: 3%; }
+    .pos-selfie  { position: absolute; top: 3%; left: 22%; }
+    .pos-fox     { position: absolute; bottom: 16%; right: 4%; }
+
+    .bottom-row {
+      position: absolute;
+      bottom: 16%;
+      left: 0;
+      right: 28%;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-evenly;
+      align-items: flex-end;
+      padding: 0 5%;
+    }
+
+    /* ---- Noise meter ---- */
+    .noise-wrap { position: absolute; bottom: 3%; left: 25%; right: 5%; }
+    .noise-title {
+      font-size: 1.875rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.03em;
+      text-align: center;
+      margin-bottom: 8px;
+      text-shadow: 2px 2px 6px rgba(0,0,0,0.9);
+    }
+    .noise-enable {
+      display: block;
+      margin: 0 auto;
+      background: rgba(0,0,0,0.6);
+      border: 4px solid var(--gold);
+      padding: 12px 24px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+    }
+    .noise-bar-outer {
+      position: relative;
+      height: 48px;
+      background: rgba(0,0,0,0.6);
+      border: 4px solid var(--gold);
+      overflow: hidden;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+      transition: transform 0.2s;
+    }
+    .noise-bar-fill {
+      height: 100%;
+      width: 0%;
+      transition: width 0.1s ease-out;
+      background: linear-gradient(to right, #AA0000 0%, #C9302C 50%, #B3995D 100%);
+    }
+    .noise-peak {
+      position: absolute;
+      top: 0;
+      width: 4px;
+      height: 100%;
+      background: #FFD700;
+      display: none;
+    }
+    .noise-pct {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+      pointer-events: none;
+      text-shadow: 2px 2px 6px rgba(0,0,0,0.9);
+    }
+    .hidden { display: none !important; }
+
+    /* ---- Rotate prompt (portrait) ---- */
+    .sb-rotate {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000;
+      color: #fff;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 32px;
+      z-index: 50;
+    }
+    @media (orientation: portrait) {
+      .sb-board { display: none !important; }
+      .sb-rotate { display: flex; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sb-board" id="board">
+
+    <!-- Noise meter -->
+    <div class="noise-wrap">
+      <div class="noise-title">MAKE SOME NOISE!</div>
+      <button class="noise-enable sb-btn" id="noiseEnable" style="flex-direction:row;">
+        🎤 Tap to enable the mic and make some noise!
+        <span id="noiseErr" style="margin-left:8px;opacity:0.8;display:none;">(permission needed)</span>
+      </button>
+      <div class="noise-bar-outer hidden" id="noiseBar">
+        <div class="noise-bar-fill" id="noiseFill"></div>
+        <div class="noise-peak" id="noisePeak"></div>
+        <div class="noise-pct" id="noisePct">0%</div>
+      </div>
+    </div>
+
+    <!-- GAMEDAY SONG (top-left) -->
+    <button class="sb-btn pos-gameday" aria-label="GAMEDAY SONG" data-sound="Gameday_Song.mp3">
+      <span class="sb-label-outline">GAMEDAY SONG</span>
+      <img class="sb-img sb-img-sm" src="assets/button.png" alt="" draggable="false" />
+    </button>
+
+    <!-- GAMEDAY SELFIE (top, opens camera) -->
+    <button class="sb-btn pos-selfie" id="selfieBtn" aria-label="Take a selfie">
+      <span class="sb-label-outline">GAMEDAY SELFIE</span>
+      <img class="sb-img sb-img-sm" src="assets/camera.png" alt="" draggable="false" />
+    </button>
+
+    <!-- Bottom row: HYPESONG / FOGHORN / DEFENSE -->
+    <div class="bottom-row">
+      <button class="sb-btn" aria-label="HYPESONG" data-sound="Hypesong.mp3">
+        <img class="sb-img sb-img-lg" src="assets/button.png" alt="" draggable="false" />
+        <span class="sb-label">HYPESONG</span>
+      </button>
+      <button class="sb-btn" aria-label="FOGHORN" data-sound="foghorn.mp3" data-confetti="true">
+        <img class="sb-img sb-img-lg" src="assets/button.png" alt="" draggable="false" />
+        <span class="sb-label">FOGHORN</span>
+      </button>
+      <button class="sb-btn" aria-label="DEFENSE" data-sound="Defense.mp3">
+        <img class="sb-img sb-img-lg" src="assets/button.png" alt="" draggable="false" />
+        <span class="sb-label">DEFENSE</span>
+      </button>
+    </div>
+
+    <!-- FOX (bottom-right) -->
+    <button class="sb-btn pos-fox" aria-label="FOX" data-sound="Fox.mp3">
+      <img class="sb-img sb-img-lg" src="assets/button.png" alt="" draggable="false" />
+      <span class="sb-label">FOX</span>
+    </button>
+
+    <!-- Hidden camera input -->
+    <input type="file" accept="image/*" capture="user" id="cameraInput" style="display:none;" />
+  </div>
+
+  <!-- Rotate prompt -->
+  <div class="sb-rotate">
+    <div>
+      <div style="font-size:3.75rem;margin-bottom:16px;">↻</div>
+      <div style="font-size:1.5rem;font-weight:700;">Please rotate your device</div>
+      <div style="font-size:1rem;opacity:0.8;margin-top:8px;">This soundboard is designed for landscape mode</div>
+    </div>
+  </div>
+
+  <script>
+    // ---- Sound buttons ----
+    // One Audio object per button; restart from the top on each tap.
+    const audioCache = {};
+    document.querySelectorAll("[data-sound]").forEach((btn) => {
+      const file = btn.getAttribute("data-sound");
+      const audio = new Audio("assets/" + file);
+      audio.preload = "auto";
+      audioCache[file] = audio;
+
+      btn.addEventListener("click", (e) => {
+        try { audio.pause(); audio.currentTime = 0; } catch (err) {}
+        audio.play().catch(() => {});
+
+        if (btn.getAttribute("data-confetti") === "true") {
+          fireConfetti(e.currentTarget);
+        }
+      });
+    });
+
+    // ---- Foghorn confetti ----
+    function fireConfetti(el) {
+      if (!el || typeof confetti !== "function") return;
+      const rect = el.getBoundingClientRect();
+      const originX = (rect.left + rect.width / 2) / window.innerWidth;
+      const originY = (rect.top + rect.height / 2) / window.innerHeight;
+      confetti({
+        particleCount: 180,
+        spread: 100,
+        startVelocity: 60,
+        gravity: 0.9,
+        ticks: 300,
+        origin: { x: originX, y: originY },
+        colors: ["#AA0000", "#C9302C", "#8B0000", "#B3995D", "#C9A84C", "#FFD700"],
+        scalar: 1.8,
+        shapes: ["square", "circle"],
+        zIndex: 9999,
+      });
+    }
+
+    // ---- Selfie camera ----
+    const cameraInput = document.getElementById("cameraInput");
+    document.getElementById("selfieBtn").addEventListener("click", () => {
+      cameraInput.click();
+    });
+
+    // ---- Noise meter ----
+    (function () {
+      const enableBtn = document.getElementById("noiseEnable");
+      const errSpan = document.getElementById("noiseErr");
+      const bar = document.getElementById("noiseBar");
+      const fill = document.getElementById("noiseFill");
+      const peakEl = document.getElementById("noisePeak");
+      const pctEl = document.getElementById("noisePct");
+
+      let audioCtx, analyser, stream, raf, peakDecay;
+      let peak = 0, lastGlow = 0;
+
+      async function start() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new Ctx();
+          if (audioCtx.state === "suspended") await audioCtx.resume();
+          const source = audioCtx.createMediaStreamSource(stream);
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 256;
+          analyser.smoothingTimeConstant = 0.3;
+          source.connect(analyser);
+          const data = new Uint8Array(analyser.frequencyBinCount);
+
+          enableBtn.classList.add("hidden");
+          bar.classList.remove("hidden");
+
+          function tick() {
+            analyser.getByteFrequencyData(data);
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) sum += data[i];
+            const avg = sum / data.length;
+            const v = Math.min(100, (avg / 255) * 100 * 1.8);
+
+            fill.style.width = v + "%";
+            pctEl.textContent = Math.round(v) + "%";
+
+            if (v > peak) {
+              peak = v;
+              peakEl.style.display = "block";
+              peakEl.style.left = "calc(" + peak + "% - 2px)";
+            }
+
+            const now = performance.now();
+            if (v >= 80 && now - lastGlow > 2000) {
+              lastGlow = now;
+              bar.style.transform = "scale(1.05)";
+              bar.style.boxShadow = "0 0 30px 8px rgba(179, 153, 93, 0.8)";
+              setTimeout(() => {
+                bar.style.transform = "scale(1)";
+                bar.style.boxShadow = "";
+              }, 200);
+            }
+            raf = requestAnimationFrame(tick);
+          }
+          tick();
+
+          peakDecay = setInterval(() => {
+            if (peak > 0) {
+              peak = Math.max(0, peak - 1);
+              peakEl.style.left = "calc(" + peak + "% - 2px)";
+              if (peak === 0) peakEl.style.display = "none";
+            }
+          }, 50);
+        } catch (err) {
+          errSpan.style.display = "inline";
+        }
+      }
+
+      enableBtn.addEventListener("click", start);
+
+      window.addEventListener("beforeunload", () => {
+        if (raf) cancelAnimationFrame(raf);
+        if (peakDecay) clearInterval(peakDecay);
+        if (stream) stream.getTracks().forEach((t) => t.stop());
+        if (audioCtx) audioCtx.close();
+      });
+    })();
+  </script>
+</body>
+</html>
